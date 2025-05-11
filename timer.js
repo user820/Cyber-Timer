@@ -10,6 +10,7 @@ let elapsedSeconds = 0;
 let beepAtStartPlayed = false;
 let beepAt15MinPlayed = false;
 let beepAt5MinPlayed = false;
+let beepAtStopwatchStartPlayed = false; // New flag for stopwatch start beep
 
 // Create AudioContext once (for beep sound)
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -99,14 +100,27 @@ function togglePlayPause() {
   if (isRunning) {
     // Pause
     isRunning = false;
+
+    // Play beep when paused (both countdown and count-up)
+    playBeep(1000, 440, 0.1);
+
   } else {
-    // Play
+    // Play (resume)
     if (startTime === 0) {
       // First start
       startTime = Date.now();
+
+      // Play beep at stopwatch start (only in count-up mode)
+      if (!isCountdown) {
+        playBeep(1000, 440, 0.1);
+        beepAtStopwatchStartPlayed = true;
+      }
     } else {
       // Resume: adjust startTime to account for paused duration
       startTime = Date.now() - elapsedSeconds * 1000;
+
+      // Play beep when resuming (both countdown and count-up)
+      playBeep(1000, 440, 0.1);
     }
     isRunning = true;
   }
@@ -134,6 +148,7 @@ function startCountdown() {
   beepAtStartPlayed = false;
   beepAt15MinPlayed = false;
   beepAt5MinPlayed = false;
+  beepAtStopwatchStartPlayed = false; // reset stopwatch beep flag too
 
   updateTimer();
 }
@@ -142,9 +157,13 @@ function startCountdown() {
 function startCountUp() {
   isCountdown = false;
   elapsedSeconds = 0;
-  startTime = Date.now();
-  isRunning = true;
-  updateTimer();
+  startTime = 0; // reset startTime to 0 so beep plays on first start
+  isRunning = false; // start paused, user must press space to start
+
+  // Reset beep flags for stopwatch start
+  beepAtStopwatchStartPlayed = false;
+
+  document.getElementById('timer').textContent = '00:00:00';
 }
 
 // Initial display
@@ -154,7 +173,6 @@ document.getElementById('timer').textContent = '00:00:00';
 setInterval(updateTimer, 1000);
 
 // Keyboard controls
-// Existing keyboard controls listener
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') {
     e.preventDefault();
